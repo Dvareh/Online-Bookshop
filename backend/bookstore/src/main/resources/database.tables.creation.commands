@@ -62,6 +62,7 @@ CREATE TABLE orders (
     user_id INT NOT NULL,
     status VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_price DECIMAL(10,2),
     CONSTRAINT fk_order_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

@@ -1,16 +1,15 @@
 package com.bookstore.backend.Services;
 
 import com.bookstore.backend.DTO.OrderStatus;
-import com.bookstore.backend.Models.Cart;
-import com.bookstore.backend.Models.Order;
-import com.bookstore.backend.Models.OrderItem;
-import com.bookstore.backend.Models.User;
+import com.bookstore.backend.Models.*;
 import com.bookstore.backend.Repositories.CartRepository;
 import com.bookstore.backend.Repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -33,22 +32,46 @@ public class OrderService {
             throw new RuntimeException("Cart is empty");
         }
 
+        for (CartItem cartItem : cart.getItems()) {
+            Book book = cartItem.getBook();
+
+            if (book.getStockQuantity() <cartItem.getQuantity()) {
+               throw new RuntimeException(
+                       "Book quantity is less than stock quantity for: "
+                               + book.getTitle());
+            }
+        }
         Order order = Order.builder()
                 .user(user)
                 .status(OrderStatus.NEW)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        List<OrderItem> items = cart.getItems().stream()
-                .map(cartItem -> OrderItem.builder()
-                        .order(order)
-                        .book(cartItem.getBook())
-                        .quantity(cartItem.getQuantity())
-                        .purchasePrice(cartItem.getBook().getPrice())
-                        .build())
-                .toList();
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalPrice = BigDecimal.ZERO;
 
-        order.setItems(items);
+        for (CartItem cartItem : cart.getItems()) {
+            Book book = cartItem.getBook();
+
+            book.setStockQuantity(book.getStockQuantity() - cartItem.getQuantity());
+
+            BigDecimal itemTotalPrice = book.getPrice()
+                    .multiply(new BigDecimal(cartItem.getQuantity()));
+
+            totalPrice = totalPrice.add(itemTotalPrice);
+
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .book(book)
+                    .quantity(cartItem.getQuantity())
+                    .purchasePrice(book.getPrice())
+                    .build();
+
+            orderItems.add(orderItem);
+        }
+
+        order.setItems(orderItems);
+        order.setTotalPrice(totalPrice);
 
         Order newOrder = orderRepository.save(order);
 
