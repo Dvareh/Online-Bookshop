@@ -9,6 +9,7 @@ import com.bookstore.backend.Repositories.BookRepository;
 import com.bookstore.backend.Repositories.GenreRepository;
 import com.bookstore.backend.Specifications.BookSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -22,21 +23,19 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookService{
-
-    private static final Logger logger = LoggerFactory.getLogger(BookService.class);
-
 
     private final BookRepository bookRepository;
     private final GenreRepository genreRepository;
 
-
     public Optional<BookResponseDTO> getBookById(Integer id){
-        logger.info("Getting book by id {}", id);
+        log.info("Getting book by id {}", id);
         return bookRepository.findById(id).map(this::mapToDTO);
     }
 
     public BookResponseDTO createBook(BookRequestDTO dto) {
+        log.info("Creating book {}", dto);
         List<Genre> genres = genreRepository.findAllById(dto.getGenreIds());
 
         Book book = new Book();
@@ -55,6 +54,7 @@ public class BookService{
     }
 
     public Optional<BookResponseDTO> update(Integer id, BookRequestDTO dto) {
+        log.info("Updating book {}", id);
 
         return bookRepository.findById(id).map(book -> {
 
@@ -95,14 +95,16 @@ public class BookService{
     public boolean deleteBook(Integer id) {
         if (bookRepository.existsById(id)) {
             bookRepository.deleteById(id);
-            logger.info("Deleted book with id {}", id);
+            log.info("Deleted book with id {}", id);
             return true;
         }
-        logger.warn("Attempted to delete non-existing book with id {}", id);
+        log.warn("Attempted to delete non-existing book with id {}", id);
         return false;
     }
 
     public Page<BookResponseDTO> searchBooks(BookSearchRequestDTO bookSearchRequestDTO, Pageable pageable) {
+        log.info("Searching books");
+
         Specification<Book> spec = Specification
                 .where(BookSpecification.hasTitle(bookSearchRequestDTO.getTitle()))
                 .and(BookSpecification.hasAuthor(bookSearchRequestDTO.getAuthor()))

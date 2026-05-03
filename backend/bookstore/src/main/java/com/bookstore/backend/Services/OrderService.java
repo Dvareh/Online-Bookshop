@@ -8,6 +8,7 @@ import com.bookstore.backend.Models.*;
 import com.bookstore.backend.Repositories.CartRepository;
 import com.bookstore.backend.Repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -24,6 +26,7 @@ public class OrderService {
     private final CartRepository cartRepository;
 
     public Order createOrder(String email) {
+        log.info("Creating order for user {}", email);
 
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -85,6 +88,7 @@ public class OrderService {
     }
 
     public List<Order> getOrders(String email){
+        log.info("Getting orders for user {}", email);
 
         User user =  userService.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -108,6 +112,7 @@ public class OrderService {
     }
 
     public List<OrderAdminResponseDTO> getOrdersAdmin(){
+        log.info("Getting orders for admin");
         return orderRepository.findAll()
                 .stream()
                 .map(this::mapToAdminDTO)
@@ -115,6 +120,7 @@ public class OrderService {
     }
 
     public OrderAdminResponseDTO updateOrderStatus(Integer id, OrderStatus status) {
+        log.info("Updating order status for user {}", id);
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 

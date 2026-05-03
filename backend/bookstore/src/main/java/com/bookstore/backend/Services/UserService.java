@@ -5,6 +5,7 @@ import com.bookstore.backend.DTO.UserDTO;
 import com.bookstore.backend.Models.User;
 import com.bookstore.backend.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,14 +16,14 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final PasswordEncoder passwordEncoder;
 
     public User save(User user){
-        logger.info("Saving user {}", user.getId());
+        log.info("Saving user {}", user.getId());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -32,23 +33,23 @@ public class UserService {
     }
 
     public Optional<User> findByEmail(String email){
-        logger.info("Finding user by email {}", email);
+        log.info("Finding user by email {}", email);
         return userRepository.findByEmail(email);
     }
 
     public Optional<User> findById(Integer id){
-        logger.info("Finding user by id {}", id);
+        log.info("Finding user by id {}", id);
         return userRepository.findById(id);
     }
 
     public List<User> findAll(){
-        logger.info("Finding all users");
+        log.info("Finding all users");
         return userRepository.findAll();
     }
 
 
     public boolean deleteById(Integer id) {
-        logger.info("Deleting user {}", id);
+        log.info("Deleting user {}", id);
         return userRepository.findById(id)
                 .map(user -> {
                     userRepository.delete(user);
@@ -59,7 +60,7 @@ public class UserService {
 
 
     public Optional<User> updateUser(Integer id, UpdateRequestDTO requestDTO) {
-        logger.info("Updating user {}", id);
+        log.info("Updating user {}", id);
         return userRepository.findById(id)
                 .map(user -> {
 
@@ -80,7 +81,7 @@ public class UserService {
     }
 
     public UserDTO mapToDTO(User user){
-        logger.info("Mapping user {}", user.getId());
+        log.info("Mapping user {}", user.getId());
         return UserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())

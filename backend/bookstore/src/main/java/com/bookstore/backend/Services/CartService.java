@@ -10,10 +10,12 @@ import com.bookstore.backend.Repositories.BookRepository;
 import com.bookstore.backend.Repositories.CartItemRepository;
 import com.bookstore.backend.Repositories.CartRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CartService {
 
     private final CartRepository cartRepository;
@@ -22,6 +24,7 @@ public class CartService {
     private final BookRepository bookRepository;
 
     private Cart getOrCreateCart(User user){
+        log.info("Getting or creating cart");
         return cartRepository.findByUser(user)
                 .orElseGet(() -> cartRepository.save(
                         Cart.builder()
@@ -31,6 +34,7 @@ public class CartService {
     }
 
     public Cart getCart(String email){
+        log.info("Getting cart for user {}", email);
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -38,6 +42,7 @@ public class CartService {
     }
 
     public Cart addItemToCart(String email, Integer bookId, Integer quantity){
+        log.info("Adding item to cart for user {}", email);
         validateQuantity(quantity);
 
         User user = userService.findByEmail(email)
@@ -63,6 +68,7 @@ public class CartService {
     }
 
     public Cart updateItem(String email, Integer itemId, Integer quantity){
+        log.info("Updating item in cart for user {}", email);
 
         validateQuantity(quantity);
 
@@ -84,6 +90,7 @@ public class CartService {
     }
 
     public void removeItem(String email, Integer itemId){
+        log.info("Removing item from cart for user {}", email);
 
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));

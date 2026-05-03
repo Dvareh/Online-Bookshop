@@ -7,18 +7,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/user/admin")
-@Tag(name = "Admin User", description = "Endpoints for admin management of users")
-public class UserAdminController {
+@RequestMapping("/admin/user")
+@Tag(name = "Admin user controller")
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminUserController {
 
     private final UserService userService;
 
-    public UserAdminController(UserService userService) {
+    public AdminUserController(UserService userService) {
         this.userService = userService;
     }
 

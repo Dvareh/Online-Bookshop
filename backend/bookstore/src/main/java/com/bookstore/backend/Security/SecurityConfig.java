@@ -47,13 +47,15 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/books/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/genres/**").permitAll()
+
 
                         .requestMatchers("/cart/**").authenticated()
                         .requestMatchers("/orders/**").authenticated()
-
                         .requestMatchers("/user/me/**").authenticated()
 
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/genres/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

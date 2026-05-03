@@ -31,38 +31,12 @@ public class BookController {
         this.bookService = bookService;
     }
 
-
     @GetMapping("/get/{id}")
     @Operation(summary = "Get book by ID", description = "Method returns a specific book by its ID")
     public ResponseEntity<BookResponseDTO> getBookById(@PathVariable Integer id) {
         return bookService.getBookById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-
-    @PostMapping("/add")
-    @Operation(summary = "Add new book", description = "Method creates a new book in the database")
-    public ResponseEntity<BookResponseDTO> create(@RequestBody BookRequestDTO request) {
-        return ResponseEntity.ok(bookService.createBook(request));
-    }
-
-    @PutMapping("/update/{id}")
-    @Operation(summary = "Update book", description = "Method updates an existing book by ID")
-    public ResponseEntity<BookResponseDTO> updateBook(@PathVariable Integer id, @RequestBody BookRequestDTO bookRequestDTO) {
-        return bookService.update(id, bookRequestDTO)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/delete/{id}")
-    @Operation(summary = "Delete book", description = "Method deletes a specific book by its ID")
-    public ResponseEntity<Book> deleteBook(@PathVariable Integer id) {
-        if (bookService.deleteBook(id)) {
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
     }
 
     @GetMapping("/search")
