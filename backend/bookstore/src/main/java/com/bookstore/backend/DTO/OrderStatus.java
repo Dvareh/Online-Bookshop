@@ -2,6 +2,8 @@ package com.bookstore.backend.DTO;
 
 public enum OrderStatus {
     NEW,
-    PAID,
+    PROCESSING,
+    SHIPPED,
+    DELIVERED,
     CANCELED
 }
