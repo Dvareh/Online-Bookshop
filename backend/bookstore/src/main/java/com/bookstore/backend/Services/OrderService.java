@@ -1,5 +1,6 @@
 package com.bookstore.backend.Services;
 
+import com.bookstore.backend.DTO.OrderAdminResponseDTO;
 import com.bookstore.backend.DTO.OrderItemDTO;
 import com.bookstore.backend.DTO.OrderResponseDTO;
 import com.bookstore.backend.DTO.OrderStatus;
@@ -106,6 +107,22 @@ public class OrderService {
         return order;
     }
 
+    public List<OrderAdminResponseDTO> getOrdersAdmin(){
+        return orderRepository.findAll()
+                .stream()
+                .map(this::mapToAdminDTO)
+                .toList();
+    }
+
+    public OrderAdminResponseDTO updateOrderStatus(Integer id, OrderStatus status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        order.setStatus(status);
+
+        return mapToAdminDTO(orderRepository.save(order));
+    }
+
     public OrderResponseDTO mapToDTO(Order order) {
         return OrderResponseDTO.builder()
                 .id(order.getId())
@@ -121,6 +138,16 @@ public class OrderService {
                                         .build())
                                 .toList()
                 )
+                .build();
+    }
+
+    private OrderAdminResponseDTO mapToAdminDTO(Order order) {
+        return OrderAdminResponseDTO.builder()
+                .id(order.getId())
+                .userEmail(order.getUser().getEmail())
+                .status(order.getStatus())
+                .totalPrice(order.getTotalPrice())
+                .createdAt(order.getCreatedAt())
                 .build();
     }
 }
