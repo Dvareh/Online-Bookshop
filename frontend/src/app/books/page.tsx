@@ -182,6 +182,15 @@ function matchesYearRange(year: number | undefined, range: string): boolean {
   return true;
 }
 
+const DEFAULT_GENRES: Genre[] = [
+  { id: 1, name: 'Romance' },
+  { id: 2, name: 'Classics' },
+  { id: 3, name: 'Dystopian' },
+  { id: 4, name: 'Science Fiction' },
+  { id: 5, name: 'Horror' },
+  { id: 6, name: 'Philosophy' },
+];
+
 export default function BooksPage() {
   const [titleInput, setTitleInput] = useState('');
   const [authorInput, setAuthorInput] = useState('');
@@ -198,7 +207,7 @@ export default function BooksPage() {
 
   const [books, setBooks] = useState<Book[]>([]);
   const [total, setTotal] = useState(0);
-  const [genres, setGenres] = useState<Genre[]>([]);
+  const [genres, setGenres] = useState<Genre[]>(DEFAULT_GENRES);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
