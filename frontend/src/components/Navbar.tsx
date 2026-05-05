@@ -131,7 +131,7 @@ export default function Navbar() {
         <NavLinks>
           {!initializing && token ? (
             <>
-              <CartBtn>
+              <CartBtn onClick={() => router.push('/cart')}>
                 <Image src="/shopping-bag.png" width={22} height={22} alt="cart" />
                 {cartCount > 0 && <CartBadge>{cartCount}</CartBadge>}
               </CartBtn>
