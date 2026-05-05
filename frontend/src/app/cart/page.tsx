@@ -485,7 +485,7 @@ export default function CartPage() {
                 </TotalRow>
                 <VatNote>Cena zawiera VAT</VatNote>
 
-                <CheckoutBtn>Przejdź do kasy →</CheckoutBtn>
+                <CheckoutBtn onClick={() => router.push('/checkout')}>Przejdź do kasy →</CheckoutBtn>
                 <ContinueBtn onClick={() => router.push('/')}>
                   Kontynuj zakupy
                 </ContinueBtn>
