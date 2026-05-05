@@ -1,20 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import { OrderCard } from '@/components/OrderCard'
+import type { OrderStatus } from '@/components/OrderCard'
 import { useAppSelector } from '@/store'
-
-const userStats = {
-  totalOrders: 0,
-  totalSpent: 0,
-  booksInCollection: 0,
-}
-
-const orders: [] = []
+import { getOrders } from '@/api'
+import type { OrderDTO } from '@/api'
 
 const PageWrapper = styled.main`
   min-height: 100vh;
@@ -143,16 +138,6 @@ const StatsGrid = styled.div`
   gap: 12px;
 `
 
-const StatsTitle = styled.h3`
-  font-family: 'Lato', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: #5a5249;
-  margin: 0 0 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-`
-
 const StatItem = styled.div``
 
 const StatLabel = styled.p`
@@ -223,6 +208,14 @@ const EmptyOrders = styled.p`
   margin: 0;
 `
 
+const ErrorMsg = styled.p`
+  font-size: 13px;
+  color: #b04040;
+  text-align: center;
+  padding: 16px 0;
+  margin: 0;
+`
+
 const LoadingWrapper = styled.div`
   min-height: 100vh;
   display: flex;
@@ -234,9 +227,34 @@ const LoadingWrapper = styled.div`
   color: #9a9086;
 `
 
+function normalizeStatus(raw: string): OrderStatus {
+  const s = (raw ?? '').toUpperCase()
+  if (s === 'DELIVERED' || s === 'COMPLETED' || s === 'DONE') return 'delivered'
+  if (s === 'IN_TRANSIT' || s === 'SHIPPED' || s === 'SENT') return 'in_transit'
+  if (s === 'CANCELLED' || s === 'CANCELED') return 'cancelled'
+  return 'processing'
+}
+
+function formatDate(d: string | undefined): string {
+  if (!d) return '—'
+  try {
+    return new Date(d).toLocaleDateString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  } catch {
+    return d
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, token, initializing } = useAppSelector((s) => s.auth)
+
+  const [orders, setOrders] = useState<OrderDTO[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+  const [ordersError, setOrdersError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!initializing && !token) {
@@ -244,9 +262,25 @@ export default function ProfilePage() {
     }
   }, [initializing, token, router])
 
+  useEffect(() => {
+    if (!token) return
+    setOrdersLoading(true)
+    getOrders()
+      .then(setOrders)
+      .catch((e: Error) => setOrdersError(e.message))
+      .finally(() => setOrdersLoading(false))
+  }, [token])
+
   if (initializing || !token) {
     return <LoadingWrapper>Ładowanie...</LoadingWrapper>
   }
+
+  const totalOrders = orders.length
+  const totalSpent = orders.reduce((sum, o) => sum + (o.totalPrice ?? o.total ?? 0), 0)
+  const booksInCollection = orders.reduce((sum, o) => {
+    const lines = o.orderItems ?? o.items ?? []
+    return sum + lines.reduce((s, i) => s + (i.quantity ?? 1), 0)
+  }, 0)
 
   const displayName = user?.username ?? '—'
   const displayEmail = user?.email ?? '—'
@@ -283,17 +317,17 @@ export default function ProfilePage() {
               <StatsGrid>
                 <StatItem>
                   <StatLabel>Zamówienia</StatLabel>
-                  <StatValue>{userStats.totalOrders}</StatValue>
+                  <StatValue>{totalOrders}</StatValue>
                 </StatItem>
                 <StatItem>
                   <StatLabel>Łączne wydatki</StatLabel>
                   <StatValue $accent>
-                    {userStats.totalSpent.toLocaleString('pl-PL')} zł
+                    {totalSpent.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                   </StatValue>
                 </StatItem>
                 <StatItem>
                   <StatLabel>Książki w kolekcji</StatLabel>
-                  <StatValue>{userStats.booksInCollection}</StatValue>
+                  <StatValue>{booksInCollection}</StatValue>
                 </StatItem>
               </StatsGrid>
             </Card>
@@ -303,17 +337,38 @@ export default function ProfilePage() {
             <SectionCard>
               <SectionHeader>
                 <SectionTitle>Historia zamówień</SectionTitle>
-                <ContinueLink href="/">Kontynuuj zakupy</ContinueLink>
+                <ContinueLink href="/">Kontynuj zakupy</ContinueLink>
               </SectionHeader>
 
               <OrdersList>
-                {orders.length === 0 ? (
-                  <EmptyOrders>Brak zamówień</EmptyOrders>
-                ) : (
-                  orders.map((order: any) => (
-                    <OrderCard key={order.id} {...order} />
-                  ))
+                {ordersLoading && (
+                  <EmptyOrders>Ładowanie zamówień...</EmptyOrders>
                 )}
+                {!ordersLoading && ordersError && (
+                  <ErrorMsg>Błąd: {ordersError}</ErrorMsg>
+                )}
+                {!ordersLoading && !ordersError && orders.length === 0 && (
+                  <EmptyOrders>Brak zamówień</EmptyOrders>
+                )}
+                {!ordersLoading && !ordersError && orders.map((order) => {
+                  const lines = order.orderItems ?? order.items ?? []
+                  const productsCount = lines.reduce((s, i) => s + (i.quantity ?? 1), 0)
+                  return (
+                    <OrderCard
+                      key={order.id}
+                      orderId={order.id}
+                      date={formatDate(order.createdAt ?? order.orderDate ?? order.date)}
+                      productsCount={productsCount}
+                      total={order.totalPrice ?? order.total ?? 0}
+                      status={normalizeStatus(order.status)}
+                      items={lines.map((l) => ({
+                        title: l.bookTitle ?? l.title,
+                        quantity: l.quantity,
+                        price: l.price,
+                      }))}
+                    />
+                  )
+                })}
               </OrdersList>
             </SectionCard>
           </RightColumn>

@@ -103,3 +103,58 @@ export const getMyProfile = async (token: string) => {
   if (!res.ok) throw new Error('Error fetching profile');
   return res.json();
 };
+
+export interface OrderItemDTO {
+  id?: number;
+  bookId?: number;
+  bookTitle?: string;
+  title?: string;
+  quantity: number;
+  price: number;
+}
+
+export interface OrderDTO {
+  id: number;
+  createdAt?: string;
+  orderDate?: string;
+  date?: string;
+  totalPrice?: number;
+  total?: number;
+  status: string;
+  orderItems?: OrderItemDTO[];
+  items?: OrderItemDTO[];
+}
+
+export const getOrders = async (): Promise<OrderDTO[]> => {
+  const res = await fetch(`${API_URL}/orders/get`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error fetching orders');
+  return res.json();
+};
+
+export const createOrder = async (payload: {
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  paymentMethod: string;
+  items: { bookId: number; quantity: number; price: number }[];
+  total: number;
+}) => {
+  const res = await fetch(`${API_URL}/orders/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) throw new Error('Błąd składania zamówienia. Spróbuj ponownie.');
+  return res.json();
+};
