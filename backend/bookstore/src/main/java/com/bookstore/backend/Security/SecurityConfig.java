@@ -47,6 +47,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/books/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/orders/add").permitAll()
                         .requestMatchers(HttpMethod.GET, "/genres/**").permitAll()
 
 

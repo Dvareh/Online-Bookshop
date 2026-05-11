@@ -1,15 +1,14 @@
 package com.bookstore.backend.Services;
 
-import com.bookstore.backend.DTO.OrderAdminResponseDTO;
-import com.bookstore.backend.DTO.OrderItemDTO;
-import com.bookstore.backend.DTO.OrderResponseDTO;
-import com.bookstore.backend.DTO.OrderStatus;
+import com.bookstore.backend.DTO.*;
 import com.bookstore.backend.Models.*;
+import com.bookstore.backend.Repositories.BookRepository;
 import com.bookstore.backend.Repositories.CartRepository;
 import com.bookstore.backend.Repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,67 +23,71 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserService userService;
     private final CartRepository cartRepository;
+    private final BookRepository bookRepository;
 
-    public Order createOrder(String email) {
-        log.info("Creating order for user {}", email);
+    @Transactional
+    public OrderResponseDTO createOrder(
+            String username,
+            OrderRequestDTO orderRequestDTO) {
 
-        User user = userService.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = null;
 
-        Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Cart is empty"));
-
-        if(cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+        if (username != null) {
+            user = userService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
         }
 
-        for (CartItem cartItem : cart.getItems()) {
-            Book book = cartItem.getBook();
+        Order order = new Order();
+        order.setUser(user);
+        order.setStatus(OrderStatus.PROCESSING);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setPaymentMethod(orderRequestDTO.getPaymentMethod());
 
-            if (book.getStockQuantity() <cartItem.getQuantity()) {
-               throw new RuntimeException(
-                       "Book quantity is less than stock quantity for: "
-                               + book.getTitle());
-            }
-        }
-        Order order = Order.builder()
-                .user(user)
-                .status(OrderStatus.NEW)
-                .createdAt(LocalDateTime.now())
-                .build();
+        ShippingAddressDTO address = orderRequestDTO.getShippingAddress();
+
+        order.setFirstName(address.getFirstName());
+        order.setLastName(address.getLastName());
+        order.setEmail(address.getEmail());
+        order.setPhone(address.getPhone());
+        order.setStreet(address.getStreet());
+        order.setCity(address.getCity());
+        order.setPostalCode(address.getPostalCode());
+        order.setCountry(address.getCountry());
 
         List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal totalPrice = BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
 
-        for (CartItem cartItem : cart.getItems()) {
-            Book book = cartItem.getBook();
+        for (OrderItemRequestDTO itemDTO : orderRequestDTO.getItems()) {
 
-            book.setStockQuantity(book.getStockQuantity() - cartItem.getQuantity());
+            Book book = bookRepository.findById(itemDTO.getBookId())
+                    .orElseThrow(() -> new RuntimeException("Book not found"));
 
-            BigDecimal itemTotalPrice = book.getPrice()
-                    .multiply(new BigDecimal(cartItem.getQuantity()));
+            if (book.getStockQuantity() < itemDTO.getQuantity()) {
+                throw new RuntimeException("Book out of stock: " + book.getTitle());
+            }
 
-            totalPrice = totalPrice.add(itemTotalPrice);
+            book.setStockQuantity(book.getStockQuantity() - itemDTO.getQuantity());
+            bookRepository.save(book);
 
-            OrderItem orderItem = OrderItem.builder()
-                    .order(order)
-                    .book(book)
-                    .quantity(cartItem.getQuantity())
-                    .purchasePrice(book.getPrice())
-                    .build();
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setBook(book);
+            item.setQuantity(itemDTO.getQuantity());
+            item.setPurchasePrice(book.getPrice());
 
-            orderItems.add(orderItem);
+            orderItems.add(item);
+
+            total = total.add(
+                    book.getPrice().multiply(BigDecimal.valueOf(itemDTO.getQuantity()))
+            );
         }
 
         order.setItems(orderItems);
-        order.setTotalPrice(totalPrice);
+        order.setTotalPrice(total);
 
-        Order newOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
-        cart.getItems().clear();
-        cartRepository.save(cart);
-
-        return newOrder;
+        return mapToDTO(savedOrder);
     }
 
     public List<Order> getOrders(String email){

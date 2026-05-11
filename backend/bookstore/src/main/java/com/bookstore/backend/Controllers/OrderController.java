@@ -1,9 +1,11 @@
 package com.bookstore.backend.Controllers;
 
+import com.bookstore.backend.DTO.OrderRequestDTO;
 import com.bookstore.backend.DTO.OrderResponseDTO;
 import com.bookstore.backend.Models.Order;
 import com.bookstore.backend.Services.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,10 +22,17 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/add")
-    public ResponseEntity<OrderResponseDTO> createOrder(Authentication authentication) {
+    public ResponseEntity<OrderResponseDTO> createOrder(
+            @Valid @RequestBody OrderRequestDTO orderRequestDTO,
+            Authentication authentication
+            ) {
+
+        String username = authentication != null
+                ? authentication.getName()
+                : null;
+
         return ResponseEntity.ok(
-                orderService.mapToDTO(
-                        orderService.createOrder(authentication.getName()))
+                orderService.createOrder(username, orderRequestDTO)
         );
     }
 
