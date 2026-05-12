@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import Image from 'next/image'
+import { Settings, Eye, EyeOff } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import { OrderCard } from '@/components/OrderCard'
 import type { OrderStatus } from '@/components/OrderCard'
-import { useAppSelector } from '@/store'
-import { getOrders } from '@/api'
+import { useAppSelector, useAppDispatch } from '@/store'
+import { logout, fetchProfile } from '@/store/slices/authSlice'
+import { getOrders, updateProfile } from '@/api'
 import type { OrderDTO } from '@/api'
 
 const PageWrapper = styled.main`
@@ -227,6 +229,157 @@ const LoadingWrapper = styled.div`
   color: #9a9086;
 `
 
+// ── Edit modal ────────────────────────────────────────────────────────────────
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+`
+
+const Modal = styled.div`
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 460px;
+`
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0ece6;
+`
+
+const ModalTitle = styled.h2`
+  font-family: 'Lora', Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c2c2c;
+  margin: 0;
+`
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9a9086;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px;
+  &:hover { color: #2c2c2c; }
+`
+
+const ModalBody = styled.div`
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+`
+
+const FieldLabel = styled.label`
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a6248;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: block;
+  margin-bottom: 5px;
+`
+
+const FieldInput = styled.input<{ $error?: boolean }>`
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid ${p => p.$error ? '#c0392b' : '#d8d0c8'};
+  border-radius: 8px;
+  font-size: 14px;
+  color: #3d2f1e;
+  background: #fff;
+  outline: none;
+  font-family: 'Lato', sans-serif;
+  &:focus { border-color: ${p => p.$error ? '#c0392b' : '#7a6248'}; }
+`
+
+const PasswordWrap = styled.div`
+  position: relative;
+`
+
+const ToggleVisBtn = styled.button`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9a9086;
+  display: inline-flex;
+  align-items: center;
+  &:hover { color: #3d2f1e; }
+`
+
+const FieldError = styled.span`
+  font-size: 11px;
+  color: #c0392b;
+  display: block;
+  margin-top: 4px;
+`
+
+const FieldHint = styled.p`
+  font-size: 11px;
+  color: #9a9086;
+  margin: 4px 0 0;
+`
+
+const EmailWarning = styled.p`
+  font-size: 12px;
+  color: #b07d2e;
+  background: #fdf4e3;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+`
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #f0ece6;
+`
+
+const ModalSaveError = styled.p`
+  font-size: 13px;
+  color: #b04040;
+  text-align: center;
+  margin: 0 0 8px;
+`
+
+const Btn = styled.button<{ $variant?: 'ghost' }>`
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+  background: ${p => p.$variant === 'ghost' ? '#f0ece6' : '#7a6248'};
+  color: ${p => p.$variant === 'ghost' ? '#4a4238' : '#fff'};
+  &:hover { opacity: 0.85; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
+
 function normalizeStatus(raw: string): OrderStatus {
   const s = (raw ?? '').toUpperCase()
   if (s === 'DELIVERED' || s === 'COMPLETED' || s === 'DONE') return 'delivered'
@@ -239,27 +392,31 @@ function formatDate(d: string | undefined): string {
   if (!d) return '—'
   try {
     return new Date(d).toLocaleDateString('pl-PL', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+      day: '2-digit', month: '2-digit', year: 'numeric',
     })
-  } catch {
-    return d
-  }
+  } catch { return d }
 }
 
 export default function ProfilePage() {
   const router = useRouter()
+  const dispatch = useAppDispatch()
   const { user, token, initializing } = useAppSelector((s) => s.auth)
 
   const [orders, setOrders] = useState<OrderDTO[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [ordersError, setOrdersError] = useState<string | null>(null)
 
+  // Edit modal state
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState({ username: '', email: '', password: '', confirmPassword: '' })
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
   useEffect(() => {
-    if (!initializing && !token) {
-      router.replace('/login')
-    }
+    if (!initializing && !token) router.replace('/login')
   }, [initializing, token, router])
 
   useEffect(() => {
@@ -284,6 +441,66 @@ export default function ProfilePage() {
   const displayName = user?.username ?? '—'
   const displayEmail = user?.email ?? '—'
 
+  // ── Edit handlers ──────────────────────────────────────────────────────────
+
+  const openEdit = () => {
+    setEditForm({ username: user?.username ?? '', email: user?.email ?? '', password: '', confirmPassword: '' })
+    setEditErrors({})
+    setSaveError(null)
+    setShowEdit(true)
+  }
+
+  const validateEdit = (): boolean => {
+    const e: Record<string, string> = {}
+    if (!editForm.username.trim()) e.username = 'Wymagane'
+    if (!editForm.email.trim()) e.email = 'Wymagane'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) e.email = 'Nieprawidłowy adres email'
+    if (editForm.password) {
+      if (!PASSWORD_REGEX.test(editForm.password))
+        e.password = 'Min. 8 znaków, litery i cyfry'
+      else if (editForm.password !== editForm.confirmPassword)
+        e.confirmPassword = 'Hasła nie pasują'
+    }
+    setEditErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const handleSaveEdit = async () => {
+    if (!validateEdit()) return
+    setSaving(true)
+    setSaveError(null)
+
+    const payload: { username?: string; email?: string; password?: string } = {
+      username: editForm.username,
+      email: editForm.email,
+    }
+    if (editForm.password) payload.password = editForm.password
+
+    try {
+      await updateProfile(payload)
+      const emailChanged = editForm.email !== user?.email
+
+      if (emailChanged) {
+        dispatch(logout())
+        router.push('/login')
+      } else {
+        await dispatch(fetchProfile(token))
+        setShowEdit(false)
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Błąd zapisu.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const setField = (field: keyof typeof editForm, value: string) => {
+    setEditForm(prev => ({ ...prev, [field]: value }))
+    setEditErrors(prev => ({ ...prev, [field]: '' }))
+  }
+
+  const emailChanged = editForm.email !== (user?.email ?? '')
+
   return (
     <PageWrapper>
       <Navbar />
@@ -306,8 +523,8 @@ export default function ProfilePage() {
                   <MetaValue>#{user.id}</MetaValue>
                 </MetaRow>
               )}
-              <EditButton>
-                <Image src="/setting.png" width={15} height={15} alt="settings" />
+              <EditButton onClick={openEdit}>
+                <Settings size={15} />
                 Edytuj profil
               </EditButton>
             </Card>
@@ -340,12 +557,8 @@ export default function ProfilePage() {
               </SectionHeader>
 
               <OrdersList>
-                {ordersLoading && (
-                  <EmptyOrders>Ładowanie zamówień...</EmptyOrders>
-                )}
-                {!ordersLoading && ordersError && (
-                  <ErrorMsg>Błąd: {ordersError}</ErrorMsg>
-                )}
+                {ordersLoading && <EmptyOrders>Ładowanie zamówień...</EmptyOrders>}
+                {!ordersLoading && ordersError && <ErrorMsg>Błąd: {ordersError}</ErrorMsg>}
                 {!ordersLoading && !ordersError && orders.length === 0 && (
                   <EmptyOrders>Brak zamówień</EmptyOrders>
                 )}
@@ -372,6 +585,98 @@ export default function ProfilePage() {
           </RightColumn>
         </Grid>
       </Container>
+
+      {/* ── Edit modal ────────────────────────────────────────────────────── */}
+      {showEdit && (
+        <Overlay onClick={e => e.target === e.currentTarget && setShowEdit(false)}>
+          <Modal>
+            <ModalHeader>
+              <ModalTitle>Edytuj profil</ModalTitle>
+              <CloseBtn onClick={() => setShowEdit(false)}>×</CloseBtn>
+            </ModalHeader>
+
+            <ModalBody>
+              <div>
+                <FieldLabel>Nazwa użytkownika</FieldLabel>
+                <FieldInput
+                  value={editForm.username}
+                  $error={!!editErrors.username}
+                  onChange={e => setField('username', e.target.value)}
+                  placeholder="Twoja nazwa"
+                />
+                {editErrors.username && <FieldError>{editErrors.username}</FieldError>}
+              </div>
+
+              <div>
+                <FieldLabel>Adres email</FieldLabel>
+                <FieldInput
+                  type="email"
+                  value={editForm.email}
+                  $error={!!editErrors.email}
+                  onChange={e => setField('email', e.target.value)}
+                  placeholder="twoj@email.com"
+                />
+                {editErrors.email && <FieldError>{editErrors.email}</FieldError>}
+                {emailChanged && (
+                  <EmailWarning>
+                    Zmiana adresu email spowoduje wylogowanie — zaloguj się ponownie nowym adresem.
+                  </EmailWarning>
+                )}
+              </div>
+
+              <div>
+                <FieldLabel>Nowe hasło <span style={{ fontWeight: 400, textTransform: 'none', color: '#9a9086' }}>(opcjonalne)</span></FieldLabel>
+                <PasswordWrap>
+                  <FieldInput
+                    type={showPassword ? 'text' : 'password'}
+                    value={editForm.password}
+                    $error={!!editErrors.password}
+                    onChange={e => setField('password', e.target.value)}
+                    placeholder="Zostaw puste, aby nie zmieniać"
+                    style={{ paddingRight: 38 }}
+                  />
+                  <ToggleVisBtn type="button" onClick={() => setShowPassword(v => !v)}>
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </ToggleVisBtn>
+                </PasswordWrap>
+                {editErrors.password
+                  ? <FieldError>{editErrors.password}</FieldError>
+                  : <FieldHint>Min. 8 znaków, zawiera litery i cyfry</FieldHint>
+                }
+              </div>
+
+              {editForm.password && (
+                <div>
+                  <FieldLabel>Potwierdź hasło</FieldLabel>
+                  <PasswordWrap>
+                    <FieldInput
+                      type={showConfirm ? 'text' : 'password'}
+                      value={editForm.confirmPassword}
+                      $error={!!editErrors.confirmPassword}
+                      onChange={e => setField('confirmPassword', e.target.value)}
+                      placeholder="Powtórz nowe hasło"
+                      style={{ paddingRight: 38 }}
+                    />
+                    <ToggleVisBtn type="button" onClick={() => setShowConfirm(v => !v)}>
+                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </ToggleVisBtn>
+                  </PasswordWrap>
+                  {editErrors.confirmPassword && <FieldError>{editErrors.confirmPassword}</FieldError>}
+                </div>
+              )}
+
+              {saveError && <ModalSaveError>{saveError}</ModalSaveError>}
+            </ModalBody>
+
+            <ModalFooter>
+              <Btn $variant="ghost" onClick={() => setShowEdit(false)}>Anuluj</Btn>
+              <Btn onClick={handleSaveEdit} disabled={saving}>
+                {saving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+              </Btn>
+            </ModalFooter>
+          </Modal>
+        </Overlay>
+      )}
     </PageWrapper>
   )
 }

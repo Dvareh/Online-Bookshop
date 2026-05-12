@@ -198,7 +198,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <PackageIcon><Package size={15} /></PackageIcon>
           <div>
             <OrderName>Zamówienie #{orderId}</OrderName>
-            <OrderDate>Data: {date}</OrderDate>
           </div>
         </OrderTitle>
         <HeaderRight>

@@ -268,6 +268,20 @@ export interface BookRequestPayload {
   genreIds?: number[];
 }
 
+export const updateProfile = async (payload: {
+  username?: string;
+  email?: string;
+  password?: string;
+}): Promise<{ id: number; username: string; email: string; role: string }> => {
+  const res = await fetch(`${API_URL}/user/me/update`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Błąd aktualizacji profilu.');
+  return res.json();
+};
+
 export const adminGetOrders = async (): Promise<AdminOrderDTO[]> => {
   const res = await fetch(`${API_URL}/admin/orders/get`, {
     headers: { 'Content-Type': 'application/json', ...authHeader() },
