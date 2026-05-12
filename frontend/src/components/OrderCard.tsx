@@ -1,7 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styled from 'styled-components'
 
 export type OrderStatus = 'delivered' | 'in_transit' | 'processing' | 'cancelled'
+
+export interface OrderItemLine {
+  title?: string;
+  bookTitle?: string;
+  quantity: number;
+  price: number;
+}
 
 export interface OrderCardProps {
   orderId: number
@@ -9,6 +16,7 @@ export interface OrderCardProps {
   productsCount: number
   total: number
   status: OrderStatus
+  items?: OrderItemLine[]
 }
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bg: string }> = {
@@ -64,6 +72,12 @@ const OrderDate = styled.p`
   margin: 2px 0 0;
 `
 
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`
+
 const StatusBadge = styled.span<{ $status: OrderStatus }>`
   font-family: 'Lato', sans-serif;
   font-size: 12px;
@@ -72,6 +86,21 @@ const StatusBadge = styled.span<{ $status: OrderStatus }>`
   border-radius: 20px;
   color: ${({ $status }) => statusConfig[$status].color};
   background: ${({ $status }) => statusConfig[$status].bg};
+`
+
+const ToggleBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Lato', sans-serif;
+  font-size: 12px;
+  color: #9a9086;
+  padding: 0;
+  transition: color 0.15s;
+
+  &:hover {
+    color: #4a4238;
+  }
 `
 
 const CardBody = styled.div`
@@ -107,13 +136,56 @@ const TotalAmount = styled.p`
   margin: 0;
 `
 
+const ItemsSection = styled.div`
+  border-top: 1px solid #f0ece6;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+const ItemLine = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+`
+
+const ItemTitle = styled.span`
+  font-size: 13px;
+  color: #3d2f1e;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const ItemMeta = styled.span`
+  font-size: 12px;
+  color: #9a9086;
+  white-space: nowrap;
+  flex-shrink: 0;
+`
+
+const ItemPrice = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c2c2c;
+  white-space: nowrap;
+  flex-shrink: 0;
+`
+
 export const OrderCard: React.FC<OrderCardProps> = ({
   orderId,
   date,
   productsCount,
   total,
   status,
+  items,
 }) => {
+  const [expanded, setExpanded] = useState(false)
+  const hasItems = items && items.length > 0
+
   return (
     <Card>
       <CardHeader>
@@ -124,8 +196,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <OrderDate>Data: {date}</OrderDate>
           </div>
         </OrderTitle>
-        <StatusBadge $status={status}>{statusConfig[status].label}</StatusBadge>
+        <HeaderRight>
+          <StatusBadge $status={status}>{statusConfig[status].label}</StatusBadge>
+          {hasItems && (
+            <ToggleBtn onClick={() => setExpanded((v) => !v)}>
+              {expanded ? 'Zwiń ▲' : 'Rozwiń ▼'}
+            </ToggleBtn>
+          )}
+        </HeaderRight>
       </CardHeader>
+
       <CardBody>
         <ProductsInfo>Produkty: {productsCount}</ProductsInfo>
         <TotalWrapper>
@@ -133,6 +213,22 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <TotalAmount>{total.toLocaleString('pl-PL')} zł</TotalAmount>
         </TotalWrapper>
       </CardBody>
+
+      {expanded && hasItems && (
+        <ItemsSection>
+          {items!.map((item, idx) => {
+            const title = item.bookTitle ?? item.title ?? 'Nieznana książka'
+            const lineTotal = item.price * item.quantity
+            return (
+              <ItemLine key={idx}>
+                <ItemTitle>{title}</ItemTitle>
+                <ItemMeta>{item.quantity} × {item.price.toFixed(2)} zł</ItemMeta>
+                <ItemPrice>{lineTotal.toFixed(2)} zł</ItemPrice>
+              </ItemLine>
+            )
+          })}
+        </ItemsSection>
+      )}
     </Card>
   )
 }

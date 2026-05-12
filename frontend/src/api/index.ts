@@ -1,8 +1,26 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+export const getStoredToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const raw = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = raw + '='.repeat((4 - (raw.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    if (Date.now() >= payload.exp * 1000) {
+      localStorage.removeItem('token');
+      return null;
+    }
+  } catch {
+    localStorage.removeItem('token');
+    return null;
+  }
+  return token;
+};
+
 const authHeader = (): Record<string, string> => {
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = getStoredToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -102,4 +120,112 @@ export const getMyProfile = async (token: string) => {
 
   if (!res.ok) throw new Error('Error fetching profile');
   return res.json();
+};
+
+export interface OrderItemDTO {
+  bookId: number;
+  title: string;
+  quantity: number;
+  priceAtPurchase: number;
+}
+
+export interface OrderDTO {
+  id: number;
+  status: string;
+  totalPrice: number;
+  items: OrderItemDTO[];
+}
+
+export interface CartItemDTO {
+  id: number;
+  bookId: number;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
+export interface CartDTO {
+  id: number;
+  items: CartItemDTO[];
+}
+
+export const getOrders = async (): Promise<OrderDTO[]> => {
+  const res = await fetch(`${API_URL}/orders/get`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error fetching orders');
+  return res.json();
+};
+
+export const getOrderById = async (id: number): Promise<OrderDTO> => {
+  const res = await fetch(`${API_URL}/orders/get/${id}`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error fetching order');
+  return res.json();
+};
+
+export const createOrder = async (payload: {
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  paymentMethod: string;
+  items: { bookId: number; quantity: number; price: number }[];
+  total: number;
+}): Promise<OrderDTO> => {
+  const res = await fetch(`${API_URL}/orders/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) throw new Error('Błąd składania zamówienia. Spróbuj ponownie.');
+  return res.json();
+};
+
+export const getCart = async (): Promise<CartDTO> => {
+  const res = await fetch(`${API_URL}/cart/get`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error fetching cart');
+  return res.json();
+};
+
+export const addItemToCart = async (bookId: number, quantity: number): Promise<CartDTO> => {
+  const res = await fetch(`${API_URL}/cart/add?bookId=${bookId}&quantity=${quantity}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error adding item to cart');
+  return res.json();
+};
+
+export const updateCartItem = async (itemId: number, quantity: number): Promise<CartDTO> => {
+  const res = await fetch(`${API_URL}/cart/update?itemId=${itemId}&quantity=${quantity}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error updating cart item');
+  return res.json();
+};
+
+export const removeCartItem = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/cart/delete/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeader() },
+  });
+
+  if (!res.ok) throw new Error('Error removing cart item');
 };
