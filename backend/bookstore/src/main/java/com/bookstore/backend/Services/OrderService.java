@@ -33,7 +33,7 @@ public class OrderService {
         User user = null;
 
         if (username != null) {
-            user = userService.findByUsername(username)
+            user = userService.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
         }
 

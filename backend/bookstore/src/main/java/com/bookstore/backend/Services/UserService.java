@@ -42,11 +42,6 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public Optional<User> findByUsername(String username){
-        log.info("Finding user by username {}", username);
-        return userRepository.findByUsername(username);
-    }
-
     public List<User> findAll(){
         log.info("Finding all users");
         return userRepository.findAll();
