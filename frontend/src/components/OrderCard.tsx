@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
+import { Package, ChevronUp, ChevronDown } from 'lucide-react'
 
 export type OrderStatus = 'delivered' | 'in_transit' | 'processing' | 'cancelled'
 
@@ -53,7 +54,8 @@ const OrderTitle = styled.div`
 `
 
 const PackageIcon = styled.span`
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
   color: #8a7d6b;
 `
 
@@ -96,6 +98,9 @@ const ToggleBtn = styled.button`
   font-size: 12px;
   color: #9a9086;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   transition: color 0.15s;
 
   &:hover {
@@ -190,7 +195,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     <Card>
       <CardHeader>
         <OrderTitle>
-          <PackageIcon>📦</PackageIcon>
+          <PackageIcon><Package size={15} /></PackageIcon>
           <div>
             <OrderName>Zamówienie #{orderId}</OrderName>
             <OrderDate>Data: {date}</OrderDate>
@@ -200,7 +205,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <StatusBadge $status={status}>{statusConfig[status].label}</StatusBadge>
           {hasItems && (
             <ToggleBtn onClick={() => setExpanded((v) => !v)}>
-              {expanded ? 'Zwiń ▲' : 'Rozwiń ▼'}
+              {expanded ? <><ChevronUp size={14} /> Zwiń</> : <><ChevronDown size={14} /> Rozwiń</>}
             </ToggleBtn>
           )}
         </HeaderRight>

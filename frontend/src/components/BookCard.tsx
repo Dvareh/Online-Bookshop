@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import styled from 'styled-components';
+import { ShoppingCart } from 'lucide-react';
 import { useAppDispatch } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
 
@@ -128,7 +129,7 @@ export default function BookCard({ id, title, author, price, genres, coverUrl }:
               }
             }}
           >
-            🛒
+            <ShoppingCart size={16} />
           </CartButton>
         </Bottom>
       </Info>

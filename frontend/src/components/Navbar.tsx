@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
+import { BookOpen } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 
@@ -125,7 +126,7 @@ export default function Navbar() {
     <Nav>
       <NavInner>
         <Logo href="/">
-          <span>📖</span>
+          <BookOpen size={22} strokeWidth={1.5} />
           <span>Księgarnia</span>
         </Logo>
         <NavLinks>

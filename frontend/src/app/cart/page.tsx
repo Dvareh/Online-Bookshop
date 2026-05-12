@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
+import { ShoppingCart, BookOpen, Trash2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { removeFromCart, updateQuantity } from '@/store/slices/cartSlice';
@@ -100,8 +101,9 @@ const ThumbImg = styled.img`
 `;
 
 const ThumbPlaceholder = styled.span`
-  font-size: 22px;
+  display: inline-flex;
   opacity: 0.5;
+  color: #7a6248;
 `;
 
 const ItemInfo = styled.div`
@@ -189,11 +191,11 @@ const DeleteBtn = styled.button`
   border: none;
   cursor: pointer;
   color: #c0392b;
-  font-size: 18px;
   padding: 2px 4px;
   opacity: 0.65;
   transition: opacity 0.15s;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 
   &:hover {
     opacity: 1;
@@ -330,9 +332,10 @@ const EmptyWrap = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 64px;
+  display: flex;
   margin-bottom: 20px;
   opacity: 0.45;
+  color: #7a6248;
 `;
 
 const EmptyTitle = styled.h2`
@@ -401,7 +404,7 @@ export default function CartPage() {
 
         {items.length === 0 ? (
           <EmptyWrap>
-            <EmptyIcon>🛒</EmptyIcon>
+            <EmptyIcon><ShoppingCart size={64} /></EmptyIcon>
             <EmptyTitle>Twój koszyk jest pusty</EmptyTitle>
             <EmptyText>
               Dodaj książki do koszyka, aby kontynuować zakupy.
@@ -420,7 +423,7 @@ export default function CartPage() {
                       {item.coverUrl ? (
                         <ThumbImg src={item.coverUrl} alt={item.title} />
                       ) : (
-                        <ThumbPlaceholder>📖</ThumbPlaceholder>
+                        <ThumbPlaceholder><BookOpen size={22} /></ThumbPlaceholder>
                       )}
                     </ItemThumb>
 
@@ -455,7 +458,7 @@ export default function CartPage() {
                         onClick={() => dispatch(removeFromCart(item.id))}
                         aria-label="Usuń z koszyka"
                       >
-                        🗑
+                        <Trash2 size={18} />
                       </DeleteBtn>
                     </ItemRight>
                   </CartItem>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import Navbar from '@/components/Navbar';
 import { useAppSelector } from '@/store';
+import { ShieldOff, BookOpen } from 'lucide-react';
 import {
   adminGetOrders, adminUpdateOrderStatus,
   adminGetUsers, adminDeleteUser,
@@ -267,7 +268,7 @@ const CoverPlaceholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  color: #9a8a7a;
   opacity: 0.5;
 `;
 
@@ -499,7 +500,7 @@ export default function AdminPage() {
       <Page>
         <Navbar />
         <AccessDenied>
-          <span style={{ fontSize: 48 }}>🚫</span>
+          <ShieldOff size={48} color="#c8bfb4" />
           <p>Dostęp tylko dla administratorów.</p>
         </AccessDenied>
       </Page>
@@ -731,7 +732,7 @@ export default function AdminPage() {
                           <Td>
                             {b.coverUrl
                               ? <CoverImg src={b.coverUrl} alt={b.title} />
-                              : <CoverPlaceholder>📖</CoverPlaceholder>}
+                              : <CoverPlaceholder><BookOpen size={16} /></CoverPlaceholder>}
                           </Td>
                           <Td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</Td>
                           <Td>{b.author}</Td>
