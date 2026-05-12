@@ -229,3 +229,111 @@ export const removeCartItem = async (id: number): Promise<void> => {
 
   if (!res.ok) throw new Error('Error removing cart item');
 };
+
+export interface AdminOrderDTO {
+  id: number;
+  userEmail: string;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
+}
+
+export interface UserDTO {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}
+
+export interface BookResponseDTO {
+  id: number;
+  title: string;
+  author: string;
+  description?: string;
+  coverUrl?: string;
+  publicationYear?: number;
+  price: number;
+  stockQuantity: number;
+  genres: string[];
+}
+
+export interface BookRequestPayload {
+  title: string;
+  author: string;
+  description?: string;
+  coverUrl?: string;
+  publicationYear?: number;
+  price: number;
+  stockQuantity: number;
+  genreIds?: number[];
+}
+
+export const adminGetOrders = async (): Promise<AdminOrderDTO[]> => {
+  const res = await fetch(`${API_URL}/admin/orders/get`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error fetching admin orders');
+  return res.json();
+};
+
+export const adminUpdateOrderStatus = async (id: number, status: string): Promise<AdminOrderDTO> => {
+  const res = await fetch(`${API_URL}/admin/orders/update/${id}?orderStatus=${status}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error updating order status');
+  return res.json();
+};
+
+export const adminGetUsers = async (): Promise<UserDTO[]> => {
+  const res = await fetch(`${API_URL}/admin/user/get`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error fetching users');
+  return res.json();
+};
+
+export const adminDeleteUser = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/admin/user/delete/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error deleting user');
+};
+
+export const adminGetBooks = async (): Promise<BookResponseDTO[]> => {
+  const res = await fetch(`${API_URL}/books/search?page=0&size=1000`, {
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error fetching books');
+  const data = await res.json();
+  return data.content ?? data;
+};
+
+export const adminAddBook = async (book: BookRequestPayload): Promise<BookResponseDTO> => {
+  const res = await fetch(`${API_URL}/admin/books/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(book),
+  });
+  if (!res.ok) throw new Error('Error adding book');
+  return res.json();
+};
+
+export const adminUpdateBook = async (id: number, book: BookRequestPayload): Promise<BookResponseDTO> => {
+  const res = await fetch(`${API_URL}/admin/books/update/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(book),
+  });
+  if (!res.ok) throw new Error('Error updating book');
+  return res.json();
+};
+
+export const adminDeleteBook = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/admin/books/delete/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeader() },
+  });
+  if (!res.ok) throw new Error('Error deleting book');
+};
