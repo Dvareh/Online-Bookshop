@@ -130,12 +130,13 @@ export default function Navbar() {
           <span>Księgarnia</span>
         </Logo>
         <NavLinks>
+          <CartBtn onClick={() => router.push('/cart')}>
+            <Image src="/shopping-bag.png" width={22} height={22} alt="cart" />
+            {cartCount > 0 && <CartBadge>{cartCount}</CartBadge>}
+          </CartBtn>
+
           {!initializing && token ? (
             <>
-              <CartBtn onClick={() => router.push('/cart')}>
-                <Image src="/shopping-bag.png" width={22} height={22} alt="cart" />
-                {cartCount > 0 && <CartBadge>{cartCount}</CartBadge>}
-              </CartBtn>
               <UserChipLink href="/profile">
                 <Image src="/person.png" width={20} height={20} alt="avatar" />
                 {user?.username ?? ''}

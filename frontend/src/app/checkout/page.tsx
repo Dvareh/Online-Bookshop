@@ -415,7 +415,7 @@ function formatPostalCode(raw: string): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
+  const { user, token } = useAppSelector((s) => s.auth);
   const items = useAppSelector((s) => s.cart.items);
 
   const [form, setForm] = useState<FormState>({
@@ -465,7 +465,7 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    if (!getStoredToken()) {
+    if (token && !getStoredToken()) {
       dispatch(logout());
       setOrderError('Sesja wygasła. Zaloguj się ponownie, aby złożyć zamówienie.');
       return;
@@ -491,7 +491,7 @@ export default function CheckoutPage() {
         total: subtotal,
       });
       dispatch(clearCart());
-      router.push('/profile');
+      router.push(token ? '/profile' : '/');
     } catch (err: unknown) {
       setOrderError(err instanceof Error ? err.message : 'Błąd składania zamówienia.');
       setLoading(false);
