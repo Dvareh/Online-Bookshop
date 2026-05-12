@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
+import { User, MapPin, CreditCard, Smartphone, Landmark, Package, Mail, Phone } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { clearCart } from '@/store/slices/cartSlice';
@@ -70,7 +71,9 @@ const CardTitle = styled.h2`
 `;
 
 const TitleIcon = styled.span`
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  color: #7a6248;
 `;
 
 const FieldRow = styled.div`
@@ -108,9 +111,11 @@ const InputWrap = styled.div`
 const InputIcon = styled.span`
   position: absolute;
   left: 12px;
-  font-size: 14px;
   pointer-events: none;
   opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  color: #7a6248;
 `;
 
 const Input = styled.input<{ $hasIcon?: boolean; $error?: boolean }>`
@@ -188,8 +193,10 @@ const PaymentLabel = styled.span`
 `;
 
 const PaymentIcon = styled.span`
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
   margin-left: auto;
+  color: #7a6248;
 `;
 
 const SidebarColumn = styled.div`
@@ -375,7 +382,7 @@ interface FieldProps {
   label: string;
   value: string;
   placeholder?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   error?: string;
   onChange: (v: string) => void;
 }
@@ -393,11 +400,11 @@ interface FormState {
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
-const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; icon: string }[] = [
-  { value: 'card', label: 'Karta płatnicza', icon: '💳' },
-  { value: 'blik', label: 'BLIK', icon: '📱' },
-  { value: 'transfer', label: 'Przelew bankowy', icon: '🏦' },
-  { value: 'cod', label: 'Płatność przy odbiorze', icon: '📦' },
+const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
+  { value: 'card', label: 'Karta płatnicza', icon: <CreditCard size={18} /> },
+  { value: 'blik', label: 'BLIK', icon: <Smartphone size={18} /> },
+  { value: 'transfer', label: 'Przelew bankowy', icon: <Landmark size={18} /> },
+  { value: 'cod', label: 'Płatność przy odbiorze', icon: <Package size={18} /> },
 ];
 
 function formatPostalCode(raw: string): string {
@@ -408,7 +415,7 @@ function formatPostalCode(raw: string): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
+  const { user, token } = useAppSelector((s) => s.auth);
   const items = useAppSelector((s) => s.cart.items);
 
   const [form, setForm] = useState<FormState>({
@@ -458,7 +465,7 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    if (!getStoredToken()) {
+    if (token && !getStoredToken()) {
       dispatch(logout());
       setOrderError('Sesja wygasła. Zaloguj się ponownie, aby złożyć zamówienie.');
       return;
@@ -484,7 +491,7 @@ export default function CheckoutPage() {
         total: subtotal,
       });
       dispatch(clearCart());
-      router.push('/profile');
+      router.push(token ? '/profile' : '/');
     } catch (err: unknown) {
       setOrderError(err instanceof Error ? err.message : 'Błąd składania zamówienia.');
       setLoading(false);
@@ -501,7 +508,7 @@ export default function CheckoutPage() {
           <FormsColumn>
             <Card>
               <CardTitle>
-                <TitleIcon>👤</TitleIcon>
+                <TitleIcon><User size={16} /></TitleIcon>
                 Dane kontaktowe
               </CardTitle>
 
@@ -527,7 +534,7 @@ export default function CheckoutPage() {
                   label="Email"
                   value={form.email}
                   placeholder="jan@example.com"
-                  icon="✉"
+                  icon={<Mail size={14} />}
                   error={errors.email}
                   onChange={(v) => setField('email', v)}
                 />
@@ -535,7 +542,7 @@ export default function CheckoutPage() {
                   label="Telefon"
                   value={form.phone}
                   placeholder="+48 000 000 000"
-                  icon="📞"
+                  icon={<Phone size={14} />}
                   onChange={(v) => setField('phone', v)}
                 />
               </FieldRow>
@@ -543,7 +550,7 @@ export default function CheckoutPage() {
 
             <Card>
               <CardTitle>
-                <TitleIcon>📍</TitleIcon>
+                <TitleIcon><MapPin size={16} /></TitleIcon>
                 Adres dostawy
               </CardTitle>
 
@@ -597,7 +604,7 @@ export default function CheckoutPage() {
 
             <Card>
               <CardTitle>
-                <TitleIcon>💳</TitleIcon>
+                <TitleIcon><CreditCard size={16} /></TitleIcon>
                 Metoda płatności
               </CardTitle>
 

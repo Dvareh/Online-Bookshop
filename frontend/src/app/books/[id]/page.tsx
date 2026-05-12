@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styled from 'styled-components';
+import { ArrowLeft, ShoppingCart, Check, Star } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { getBookById, searchBooks } from '@/api';
 import { useAppDispatch } from '@/store';
@@ -33,7 +34,7 @@ const BackButton = styled.button`
   cursor: pointer;
   padding: 0;
   margin-bottom: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 
@@ -154,10 +155,10 @@ const RatingRow = styled.div`
   margin-bottom: 20px;
 `;
 
-const Stars = styled.span`
-  color: #c8a96e;
-  font-size: 20px;
-  letter-spacing: 2px;
+const StarsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2px;
 `;
 
 const RatingScore = styled.span`
@@ -361,11 +362,6 @@ const Message = styled.p`
   padding: 60px 0;
 `;
 
-function renderStars(rating: number): string {
-  const filled = Math.round(rating);
-  return '★'.repeat(filled) + '☆'.repeat(5 - filled);
-}
-
 export default function BookDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -418,7 +414,7 @@ export default function BookDetailsPage() {
     <Page>
       <Navbar />
       <Content>
-        <BackButton onClick={() => router.back()}>← Powrót</BackButton>
+        <BackButton onClick={() => router.back()}><ArrowLeft size={16} /> Powrót</BackButton>
 
         {loading && <Message>Ładowanie...</Message>}
         {!loading && error && <Message>Błąd: {error}</Message>}
@@ -462,7 +458,16 @@ export default function BookDetailsPage() {
 
                 {book.rating !== undefined && (
                   <RatingRow>
-                    <Stars>{renderStars(book.rating)}</Stars>
+                    <StarsRow>
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          size={18}
+                          color="#c8a96e"
+                          fill={i < Math.round(book.rating!) ? '#c8a96e' : 'none'}
+                        />
+                      ))}
+                    </StarsRow>
                     <RatingScore>{book.rating.toFixed(1)} / 5.0</RatingScore>
                   </RatingRow>
                 )}
@@ -498,7 +503,7 @@ export default function BookDetailsPage() {
                 </PriceRow>
 
                 <AddToCartBtn $added={added} onClick={handleAddToCart}>
-                  {added ? '✓ Dodano do koszyka' : '🛒 Dodaj do koszyka'}
+                  {added ? <><Check size={18} /> Dodano do koszyka</> : <><ShoppingCart size={18} /> Dodaj do koszyka</>}
                 </AddToCartBtn>
 
                 {book.description && (

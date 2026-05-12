@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
+import { BookOpen } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 
@@ -125,16 +126,17 @@ export default function Navbar() {
     <Nav>
       <NavInner>
         <Logo href="/">
-          <span>📖</span>
+          <BookOpen size={22} strokeWidth={1.5} />
           <span>Księgarnia</span>
         </Logo>
         <NavLinks>
+          <CartBtn onClick={() => router.push('/cart')}>
+            <Image src="/shopping-bag.png" width={22} height={22} alt="cart" />
+            {cartCount > 0 && <CartBadge>{cartCount}</CartBadge>}
+          </CartBtn>
+
           {!initializing && token ? (
             <>
-              <CartBtn onClick={() => router.push('/cart')}>
-                <Image src="/shopping-bag.png" width={22} height={22} alt="cart" />
-                {cartCount > 0 && <CartBadge>{cartCount}</CartBadge>}
-              </CartBtn>
               <UserChipLink href="/profile">
                 <Image src="/person.png" width={20} height={20} alt="avatar" />
                 {user?.username ?? ''}
