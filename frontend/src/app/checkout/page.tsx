@@ -4,8 +4,10 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import Navbar from '@/components/Navbar';
-import { useAppSelector } from '@/store';
-import type { CartItem } from '@/store/slices/cartSlice';
+import { useAppSelector, useAppDispatch } from '@/store';
+import { clearCart } from '@/store/slices/cartSlice';
+import { logout } from '@/store/slices/authSlice';
+import { createOrder, getStoredToken } from '@/api';
 
 const Page = styled.div`
   min-height: 100vh;
@@ -360,54 +362,23 @@ const FinePrint = styled.p`
   line-height: 1.5;
 `;
 
-const SuccessWrap = styled.div`
-  min-height: 100vh;
-  background: #f5f0ea;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+const OrderErrorMsg = styled.p`
+  font-size: 13px;
+  color: #c0392b;
   text-align: center;
-`;
-
-const SuccessIcon = styled.div`
-  font-size: 64px;
-  margin-bottom: 20px;
-`;
-
-const SuccessTitle = styled.h1`
-  font-family: 'Lora', 'Georgia', serif;
-  font-size: 26px;
-  color: #3d2f1e;
-  margin: 0 0 10px;
-`;
-
-const SuccessText = styled.p`
-  font-size: 15px;
-  color: #7a6248;
-  margin: 0 0 32px;
-  max-width: 380px;
-  line-height: 1.6;
-`;
-
-const SuccessBtn = styled.button`
-  padding: 13px 36px;
-  background: #7a6248;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #5e4a36;
-  }
+  margin: 0 0 12px;
 `;
 
 type PaymentMethod = 'card' | 'blik' | 'transfer' | 'cod';
+
+interface FieldProps {
+  label: string;
+  value: string;
+  placeholder?: string;
+  icon?: string;
+  error?: string;
+  onChange: (v: string) => void;
+}
 
 interface FormState {
   firstName: string;
@@ -436,6 +407,7 @@ function formatPostalCode(raw: string): string {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const items = useAppSelector((s) => s.cart.items);
 
@@ -452,17 +424,17 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [payment, setPayment] = useState<PaymentMethod>('card');
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.email) setForm((prev) => ({ ...prev, email: user.email }));
   }, [user]);
 
   useEffect(() => {
-    if (!loading && items.length === 0 && !submitted) {
+    if (!loading && items.length === 0) {
       router.replace('/cart');
     }
-  }, [items, loading, submitted, router]);
+  }, [items, loading, router]);
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -485,44 +457,39 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+
+    if (!getStoredToken()) {
+      dispatch(logout());
+      setOrderError('Sesja wygasła. Zaloguj się ponownie, aby złożyć zamówienie.');
+      return;
+    }
+
     setLoading(true);
+    setOrderError(null);
 
-    const payload = {
-      shippingAddress: {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone || undefined,
-        street: form.street,
-        city: form.city,
-        postalCode: form.postalCode,
-        country: form.country,
-      },
-      paymentMethod: payment,
-      items: items.map((i) => ({ bookId: i.id, quantity: i.quantity, price: i.price })),
-      total: subtotal,
-    };
-
-    console.log('Order payload:', payload);
-
-    await new Promise((r) => setTimeout(r, 700));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      await createOrder({
+        shippingAddress: {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone || undefined,
+          street: form.street,
+          city: form.city,
+          postalCode: form.postalCode,
+          country: form.country,
+        },
+        paymentMethod: payment,
+        items: items.map((i) => ({ bookId: i.id, quantity: i.quantity, price: i.price })),
+        total: subtotal,
+      });
+      dispatch(clearCart());
+      router.push('/profile');
+    } catch (err: unknown) {
+      setOrderError(err instanceof Error ? err.message : 'Błąd składania zamówienia.');
+      setLoading(false);
+    }
   };
-
-  if (submitted) {
-    return (
-      <SuccessWrap>
-        <SuccessIcon>✅</SuccessIcon>
-        <SuccessTitle>Zamówienie złożone!</SuccessTitle>
-        <SuccessText>
-          Dziękujemy za zakup. Potwierdzenie zamówienia zostanie wysłane na adres{' '}
-          <strong>{form.email}</strong>.
-        </SuccessText>
-        <SuccessBtn onClick={() => router.push('/')}>Wróć do sklepu</SuccessBtn>
-      </SuccessWrap>
-    );
-  }
 
   return (
     <Page>
@@ -692,6 +659,7 @@ export default function CheckoutPage() {
               </TotalRow>
               <VatNote>Cena zawiera podatek VAT</VatNote>
 
+              {orderError && <OrderErrorMsg>{orderError}</OrderErrorMsg>}
               <PlaceOrderBtn $loading={loading} onClick={handleSubmit} disabled={loading}>
                 {loading ? 'Przetwarzanie...' : 'Złóż zamówienie'}
               </PlaceOrderBtn>
@@ -705,15 +673,6 @@ export default function CheckoutPage() {
       </Content>
     </Page>
   );
-}
-
-interface FieldProps {
-  label: string;
-  value: string;
-  placeholder?: string;
-  icon?: string;
-  error?: string;
-  onChange: (v: string) => void;
 }
 
 function Field({ label, value, placeholder, icon, error, onChange }: FieldProps) {
