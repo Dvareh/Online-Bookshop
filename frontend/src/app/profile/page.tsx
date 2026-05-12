@@ -276,10 +276,9 @@ export default function ProfilePage() {
   }
 
   const totalOrders = orders.length
-  const totalSpent = orders.reduce((sum, o) => sum + (o.totalPrice ?? o.total ?? 0), 0)
+  const totalSpent = orders.reduce((sum, o) => sum + (o.totalPrice ?? 0), 0)
   const booksInCollection = orders.reduce((sum, o) => {
-    const lines = o.orderItems ?? o.items ?? []
-    return sum + lines.reduce((s, i) => s + (i.quantity ?? 1), 0)
+    return sum + o.items.reduce((s, i) => s + i.quantity, 0)
   }, 0)
 
   const displayName = user?.username ?? '—'
@@ -351,20 +350,19 @@ export default function ProfilePage() {
                   <EmptyOrders>Brak zamówień</EmptyOrders>
                 )}
                 {!ordersLoading && !ordersError && orders.map((order) => {
-                  const lines = order.orderItems ?? order.items ?? []
-                  const productsCount = lines.reduce((s, i) => s + (i.quantity ?? 1), 0)
+                  const productsCount = order.items.reduce((s, i) => s + i.quantity, 0)
                   return (
                     <OrderCard
                       key={order.id}
                       orderId={order.id}
-                      date={formatDate(order.createdAt ?? order.orderDate ?? order.date)}
+                      date={formatDate(undefined)}
                       productsCount={productsCount}
-                      total={order.totalPrice ?? order.total ?? 0}
+                      total={order.totalPrice}
                       status={normalizeStatus(order.status)}
-                      items={lines.map((l) => ({
-                        title: l.bookTitle ?? l.title,
+                      items={order.items.map((l) => ({
+                        title: l.title,
                         quantity: l.quantity,
-                        price: l.price,
+                        price: l.priceAtPurchase,
                       }))}
                     />
                   )

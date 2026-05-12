@@ -6,7 +6,8 @@ import styled from 'styled-components';
 import Navbar from '@/components/Navbar';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { clearCart } from '@/store/slices/cartSlice';
-import { createOrder } from '@/api';
+import { logout } from '@/store/slices/authSlice';
+import { createOrder, getStoredToken } from '@/api';
 
 const Page = styled.div`
   min-height: 100vh;
@@ -370,6 +371,15 @@ const OrderErrorMsg = styled.p`
 
 type PaymentMethod = 'card' | 'blik' | 'transfer' | 'cod';
 
+interface FieldProps {
+  label: string;
+  value: string;
+  placeholder?: string;
+  icon?: string;
+  error?: string;
+  onChange: (v: string) => void;
+}
+
 interface FormState {
   firstName: string;
   lastName: string;
@@ -447,6 +457,13 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+
+    if (!getStoredToken()) {
+      dispatch(logout());
+      setOrderError('Sesja wygasła. Zaloguj się ponownie, aby złożyć zamówienie.');
+      return;
+    }
+
     setLoading(true);
     setOrderError(null);
 
@@ -656,15 +673,6 @@ export default function CheckoutPage() {
       </Content>
     </Page>
   );
-}
-
-interface FieldProps {
-  label: string;
-  value: string;
-  placeholder?: string;
-  icon?: string;
-  error?: string;
-  onChange: (v: string) => void;
 }
 
 function Field({ label, value, placeholder, icon, error, onChange }: FieldProps) {
