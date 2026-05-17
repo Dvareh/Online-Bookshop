@@ -1,0 +1,35 @@
+// Get books
+GET http://localhost:8080/books
+
+// Get book by ID
+GET http://localhost:8080/books/{id}
+
+// Add book
+POST http://localhost:8080/books
+JSON body example
+{
+  "title": "The Hobbit",
+  "author": "J.R.R. Tolkien",
+  "description": "Bilbo Baggins goes on an unexpected journey",
+  "publicationYear": 1937,
+  "price": 15.99,
+  "genre": "Fantasy",
+  "stockQuantity": 13
+}
+
+
+// Update book
+PUT http://localhost:8080/books/{id}
+JSON body example
+{
+  "title": "The Hobbit",
+  "author": "J.R.R. Tolkien",
+  "description": "Bilbo Baggins goes on an unexpected journey",
+  "publicationYear": 1937,
+  "price": 12.99,
+  "genre": "Fantasy",
+  "stockQuantity": 3
+}
+
+// Delete book
+DELETE http://localhost:8080/books/{id}
