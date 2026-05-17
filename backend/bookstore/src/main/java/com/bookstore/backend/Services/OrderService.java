@@ -38,7 +38,12 @@ public class OrderService {
         }
 
         Order order = new Order();
-        order.setUser(user);
+
+        if (user != null) {
+            order.setUser(user);
+        } else {
+            order.setGuestEmail(orderRequestDTO.getShippingAddress().getEmail());
+        }
         order.setStatus(OrderStatus.PROCESSING);
         order.setCreatedAt(LocalDateTime.now());
         order.setPaymentMethod(orderRequestDTO.getPaymentMethod());
@@ -151,9 +156,18 @@ public class OrderService {
     }
 
     private OrderAdminResponseDTO mapToAdminDTO(Order order) {
+
+        String customerEmail;
+
+        if (order.getUser() != null) {
+            customerEmail = order.getUser().getEmail();
+        } else {
+            customerEmail = order.getGuestEmail();
+        }
+
         return OrderAdminResponseDTO.builder()
                 .id(order.getId())
-                .userEmail(order.getUser().getEmail())
+                .userEmail(customerEmail)
                 .status(order.getStatus())
                 .totalPrice(order.getTotalPrice())
                 .createdAt(order.getCreatedAt())

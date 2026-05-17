@@ -62,4 +62,7 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
 }
