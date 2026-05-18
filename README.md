@@ -373,3 +373,6 @@ Delete user by ID
 
 ## Project Status
     Project completed as part of the "Projekt Zespołowy Systemu Informatycznego 2026" course
+
+## License
+    This project is licensed under the MIT License.
